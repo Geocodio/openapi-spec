@@ -14,7 +14,9 @@ externalDocs:
   url: https://www.geocod.io
 servers:
 - url: https://api.geocod.io/v1.3
+  description: Standard Geocodio API Endpoint
 - url: https://api-hipaa.geocod.io/v1.3
+  description: Special Geocodio API Endpoint for customers using the HIPAA-compliant version of Geocodio
 tags:
 - name: geocode
   description: Geocode addresses to coordinates

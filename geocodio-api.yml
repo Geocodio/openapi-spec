@@ -74,6 +74,12 @@ paths:
         description: Defaults to USA
         schema:
           type: string
+      - name: limit
+        in: query
+        example: US
+        description: Optional parameter. The maximum number of results to return. The default is no limit.
+        schema:
+          type: integer
       responses:
         200:
           description: Successfully geocoded address
@@ -101,6 +107,12 @@ paths:
           $ref: '#/components/schemas/Fields'
         style: form
         explode: false
+      - name: limit
+        in: query
+        example: US
+        description: Optional parameter. The maximum number of results to return. The default is no limit.
+        schema:
+          type: integer
       requestBody:
         description: List of addresses to geocode. Can either be an array or an object with keys of your choice.
         content:

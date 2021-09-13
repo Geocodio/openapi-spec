@@ -8,14 +8,14 @@ info:
   termsOfService: https://www.geocod.io/terms-of-use/
   contact:
     email: hello@geocod.io
-  version: 1.3.0
+  version: 1.6.0
 externalDocs:
   description: Find out more about Geocodio
   url: https://www.geocod.io
 servers:
-- url: https://api.geocod.io/v1.3
+- url: https://api.geocod.io/v1.6
   description: Standard Geocodio API Endpoint
-- url: https://api-hipaa.geocod.io/v1.3
+- url: https://api-hipaa.geocod.io/v1.6
   description: Special Geocodio API Endpoint for customers using the HIPAA-compliant version of Geocodio
 tags:
 - name: geocode
@@ -307,6 +307,8 @@ components:
                 $ref: '#/components/schemas/FieldTimezone'
               census:
                 $ref: '#/components/schemas/FieldCensus'
+              zip4:
+                $ref: '#/components/schemas/FieldZip4'
     FieldCongressionalDistricts:
       type: array
       items:
@@ -489,6 +491,48 @@ components:
               type: string
         source:
           type: string
+    FieldZip4:
+      type: object
+      properties:
+        record_type:
+          type: object
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+        carrier_route:
+          type: object
+          properties:
+            id:
+              type: string
+            description:
+              type: string
+        building_or_firm_name:
+          type: string
+        plus4:
+          type: array
+          items:
+            type: string
+        zip9:
+          type: array
+          items:
+            type: string
+        government_building:
+          type: boolean
+        facility_code:
+          type: object
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+        city_delivery:
+          type: boolean
+        valid_delivery_area:
+          type: boolean
+        exact_match:
+          type: boolean
     AddressComponents:
       type: object
       properties:
@@ -534,6 +578,19 @@ components:
           - school
           - timezone
           - census
+          - census2010
+          - census2011
+          - census2012
+          - census2013
+          - census2014
+          - census2015
+          - census2016
+          - census2017
+          - census2018
+          - census2019
+          - census2020
+          - riding
+          - zip4
           - acs-demographics
           - acs-economics
           - acs-families

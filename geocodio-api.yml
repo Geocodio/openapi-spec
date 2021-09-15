@@ -80,6 +80,13 @@ paths:
         description: Optional parameter. The maximum number of results to return. The default is no limit.
         schema:
           type: integer
+      - name: format
+        in: query
+        example: simple
+        description: Optional parameter to change the output format of the JSON response to a different structure
+        schema:
+          type: string
+          enum: [simple]
       responses:
         200:
           description: Successfully geocoded address

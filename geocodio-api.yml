@@ -405,12 +405,18 @@ components:
           source:
             type: string
     FieldStateLegislativeDistricts:
-      type: object
-      properties:
-        senate:
-          $ref: '#/components/schemas/FieldStateLegislativeDistrict'
-        house:
-          $ref: '#/components/schemas/FieldStateLegislativeDistrict'
+      type: array
+      items:
+        type: object
+        properties:
+          senate:
+            type: array
+            items:
+              $ref: '#/components/schemas/FieldStateLegislativeDistrict'
+          house:
+            type: array
+            items:
+              $ref: '#/components/schemas/FieldStateLegislativeDistrict'
     FieldStateLegislativeDistrict:
       type: object
       properties:

@@ -325,6 +325,8 @@ components:
             type: string
           district_number:
             type: integer
+          ocd_id:
+            type: string
           congress_number:
             type: string
           congress_years:
@@ -424,6 +426,12 @@ components:
           type: string
         district_number:
           type: string
+        ocd_id:
+          type: string
+        is_upcoming_state_legislative_district:
+          type: boolean
+        proportion:
+          type: number
     FieldSchoolDistricts:
       type: object
       properties:
@@ -591,6 +599,7 @@ components:
           - school
           - timezone
           - census
+          - census2000
           - census2010
           - census2011
           - census2012
@@ -602,6 +611,7 @@ components:
           - census2018
           - census2019
           - census2020
+          - provriding
           - riding
           - zip4
           - acs-demographics

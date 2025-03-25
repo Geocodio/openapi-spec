@@ -50,7 +50,19 @@ paths:
         description: Can be used as an alternative to the `q` parameter
         schema:
           type: string
+      - name: street2
+        in: query
+        example: Apt 204
+        description: Can be used as an alternative to the `q` parameter
+        schema:
+          type: string
       - name: city
+        in: query
+        example: Washington
+        description: Can be used as an alternative to the `q` parameter
+        schema:
+          type: string
+      - name: county
         in: query
         example: Washington
         description: Can be used as an alternative to the `q` parameter
@@ -316,6 +328,8 @@ components:
                 $ref: '#/components/schemas/FieldCensus'
               zip4:
                 $ref: '#/components/schemas/FieldZip4'
+              ffiec:
+                $ref: '#/components/schemas/FieldFFIEC'
     FieldCongressionalDistricts:
       type: array
       items:
@@ -554,6 +568,73 @@ components:
           type: boolean
         exact_match:
           type: boolean
+    FieldFFIEC:
+      type: object
+      properties:
+        collection_year:
+          type: number
+        msa_md_code:
+          type: string
+        fips_state_code:
+          type: string
+        fips_county_code:
+          type: string
+        census_tract:
+          type: string
+        principal_city:
+          type: boolean
+        small_county:
+          type: object
+          properties:
+            flag:
+              type: string
+            description:
+              type: string
+        split_tract:
+          type: object
+          properties:
+            flag:
+              type: string
+            description:
+              type: string
+        demographic_data:
+          type: object
+          properties:
+            flag:
+              type: string
+            description:
+              type: string
+        urban_rural_flag:
+          type: object
+          properties:
+            flag:
+              type: string
+            description:
+              type: string
+        msa_md_median_family_income:
+          type: number
+        msa_md_median_household_income:
+          type: number
+        tract_median_family_income_percentage:
+          type: number
+        ffiec_estimated_msa_md_median_family_income:
+          type: number
+        income_indicator:
+          type: string
+        cra_poverty_criteria:
+          type: boolean
+        cra_unemployment_criteria:
+          type: boolean
+        cra_distressed_criteria:
+          type: boolean
+        cra_remote_rural_low_density_criteria:
+          type: boolean
+        previous_year_cra_distressed_criteria:
+          type: boolean
+        previous_year_cra_underserved_criterion:
+          type: boolean
+        meets_current_previous_criteria:
+          type: boolean
     AddressComponents:
       type: object
       properties:
@@ -591,6 +672,9 @@ components:
         type: string
         enum:
           - cd
+          - cd119
+          - cd118
+          - cd117
           - cd116
           - cd115
           - cd114
@@ -619,6 +703,7 @@ components:
           - acs-families
           - acs-housing
           - acs-social
+          - ffiec
   securitySchemes:
     geocodioApiKey:
       type: apiKey

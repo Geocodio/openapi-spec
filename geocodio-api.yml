@@ -8,14 +8,14 @@ info:
   termsOfService: https://www.geocod.io/terms-of-use/
   contact:
     email: hello@geocod.io
-  version: 1.7.0
+  version: 1.8.0
 externalDocs:
   description: Find out more about Geocodio
   url: https://www.geocod.io
 servers:
-- url: https://api.geocod.io/v1.7
+- url: https://api.geocod.io/v1.8
   description: Standard Geocodio API Endpoint
-- url: https://api.enterprise.geocod.io/v1.7
+- url: https://api.enterprise.geocod.io/v1.8
   description: Special Geocodio API Endpoint for Enterprise Customers
 tags:
 - name: geocode
@@ -287,6 +287,10 @@ components:
         properties:
           address_components:
             $ref: '#/components/schemas/AddressComponents'
+          address_lines:
+            type: array
+            items:
+              type: string
           formatted_address:
             type: string
           location:

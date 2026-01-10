@@ -99,13 +99,70 @@ paths:
         schema:
           type: string
           enum: [simple]
+
+      - name: distance_targets
+        in: query
+        description: >-
+          One or more targets to compare against the resolved origin. Each value
+          can be an address string or a coordinate string in the form "lat,lon".
+          Repeat the parameter to add multiple targets.
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+
+      - name: distance_mode
+        in: query
+        description: Distance calculation mode.
+        schema:
+          type: string
+          enum: [haversine, straightline, driving]
+          default: driving
+
+      - name: distance_units
+        in: query
+        description: Unit for distances in the response.
+        schema:
+          type: string
+          enum: [miles, km]
+          default: miles
+
+      - name: distance_max_results
+        in: query
+        description: Optional limit of results to return (applies per origin).
+        schema:
+          type: integer
+          minimum: 1
+
+      - name: distance_max_distance
+        in: query
+        description: Optional maximum distance filter in selected units.
+        schema:
+          type: number
+
+      - name: distance_max_duration
+        in: query
+        description: Optional maximum driving duration filter in minutes (driving mode only).
+        schema:
+          type: number
+
+      - name: distance_order_by
+        in: query
+        description: Sort results by distance or duration.
+        schema:
+          type: string
+          enum: [distance, duration]
+          default: distance
+
       responses:
         200:
           description: Successfully geocoded address
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GeocodingResult'
+                $ref: '#/components/schemas/GeocodingResultWithDistance'
         422:
           description: A client error prevented the request from executing successfully (e.g. invalid address provided). A JSON object will be returned with an error key containing a full error message
         403:
@@ -132,6 +189,63 @@ paths:
         description: Optional parameter. The maximum number of results to return. The default is no limit.
         schema:
           type: integer
+
+      - name: distance_targets
+        in: query
+        description: >-
+          One or more targets to compare against the resolved origin. Each value
+          can be an address string or a coordinate string in the form "lat,lon".
+          Repeat the parameter to add multiple targets.
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+
+      - name: distance_mode
+        in: query
+        description: Distance calculation mode.
+        schema:
+          type: string
+          enum: [haversine, straightline, driving]
+          default: driving
+
+      - name: distance_units
+        in: query
+        description: Unit for distances in the response.
+        schema:
+          type: string
+          enum: [miles, km]
+          default: miles
+
+      - name: distance_max_results
+        in: query
+        description: Optional limit of results to return (applies per origin).
+        schema:
+          type: integer
+          minimum: 1
+
+      - name: distance_max_distance
+        in: query
+        description: Optional maximum distance filter in selected units.
+        schema:
+          type: number
+
+      - name: distance_max_duration
+        in: query
+        description: Optional maximum driving duration filter in minutes (driving mode only).
+        schema:
+          type: number
+
+      - name: distance_order_by
+        in: query
+        description: Sort results by distance or duration.
+        schema:
+          type: string
+          enum: [distance, duration]
+          default: distance
+
       requestBody:
         description: List of addresses to geocode. Can either be an array or an object with keys of your choice.
         content:
@@ -140,6 +254,8 @@ paths:
               oneOf:
                 - $ref: '#/components/schemas/BatchGeocodeArray'
                 - $ref: '#/components/schemas/BatchGeocodeObject'
+                - $ref: '#/components/schemas/BatchGeocodeArrayAdvanced'
+                - $ref: '#/components/schemas/BatchGeocodeMatrixRequest'
         required: true
       responses:
         200:
@@ -147,19 +263,422 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        query:
-                          type: string
-                        response:
-                          $ref: '#/components/schemas/GeocodingResult'
+                oneOf:
+                  - $ref: '#/components/schemas/BatchGeocodeLegacyResponse'
+                  - $ref: '#/components/schemas/BatchGeocodePerRowDistanceResponse'
+                  - $ref: '#/components/schemas/DistanceMatrixResponse'
         403:
           description: Invalid API key, or other reason why access is forbidden.
+      security:
+        - geocodioApiKey: []
+  /distance:
+    get:
+      tags:
+      - distance
+      summary: Calculate distance from one origin to one or more targets
+      description: |
+        Quick 1→1 or 1→N distance calculation via query parameters. Browser and curl friendly.
+        All inputs must be coordinates in "lat,lon" format.
+      operationId: distanceSingle
+      parameters:
+      - name: origin
+        in: query
+        required: true
+        description: Origin coordinate in "lat,lon" or "lat,lon,id" format (id is optional)
+        schema:
+          type: string
+        example: "38.8977,-77.0365"
+      - name: targets
+        in: query
+        required: true
+        description: >-
+          One or more target coordinates in "lat,lon" or "lat,lon,id" format (id is optional).
+          Repeat the parameter to add multiple targets.
+        schema:
+          type: array
+          items:
+            type: string
+        style: form
+        explode: true
+        example: ["37.3317,-122.0307", "39.80,-89.66,hospital_a"]
+      - name: mode
+        in: query
+        description: Distance calculation mode
+        schema:
+          type: string
+          enum: [haversine, straightline, driving]
+          default: driving
+      - name: units
+        in: query
+        description: Unit for distances in the response
+        schema:
+          type: string
+          enum: [miles, km]
+          default: miles
+      - name: max_results
+        in: query
+        description: Optional limit of results to return
+        schema:
+          type: integer
+          minimum: 1
+      - name: max_distance
+        in: query
+        description: Optional maximum distance filter in selected units
+        schema:
+          type: number
+      - name: max_duration
+        in: query
+        description: Optional maximum driving duration filter in minutes (driving mode only)
+        schema:
+          type: number
+      - name: order_by
+        in: query
+        description: Sort results by distance or duration
+        schema:
+          type: string
+          enum: [distance, duration]
+          default: distance
+      responses:
+        200:
+          description: Successfully calculated distances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistanceGetResponse'
+              examples:
+                simple:
+                  summary: Simple 1→1 distance
+                  value:
+                    origin:
+                      location: [38.8977, -77.0365]
+                    mode: driving
+                    units: miles
+                    targets:
+                      - location: [37.3317, -122.0307]
+                        distance: 2796.4
+                        duration_minutes: 2580.5
+                    elements_billed: 1
+                multiple:
+                  summary: 1→N with filtering and IDs
+                  value:
+                    origin:
+                      location: [39.78, -89.64]
+                    mode: driving
+                    units: km
+                    targets:
+                      - index: 0
+                        id: "hospital_a"
+                        location: [39.80, -89.66]
+                        distance: 8.9
+                        duration_minutes: 11.2
+                      - index: 1
+                        location: [39.81, -89.67]
+                        distance: 10.2
+                        duration_minutes: 12.8
+                    elements_billed: 2
+        422:
+          description: Invalid coordinate format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Invalid API key or access forbidden
+      security:
+        - geocodioApiKey: []
+    post:
+      tags:
+      - distance
+      summary: Calculate distance matrix (M×N) or nearest neighbors
+      description: |
+        Many-to-many distance calculations with two modes:
+        - **Matrix mode**: Full M×N matrix of distances between all origins and destinations
+        - **Nearest mode**: Server-side filtered results returning only nearest K destinations per origin
+
+        Coordinates can be provided as strings ("lat,lon") or objects ({"lat": ..., "lon": ...}).
+      operationId: distanceMatrix
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/DistanceMatrixRequest'
+                - $ref: '#/components/schemas/DistanceNearestRequest'
+            examples:
+              matrix:
+                summary: Full M×N matrix with IDs
+                value:
+                  origins:
+                    - lat: 38.8977
+                      lon: -77.0365
+                      id: "office_dc"
+                    - "34.31,-120.52"
+                  destinations:
+                    - lat: 37.3317
+                      lon: -122.0307
+                      id: "warehouse_ca"
+                    - "34.00,-121.10"
+                  mode: driving
+                  units: miles
+              nearest:
+                summary: Nearest per origin with filtering and IDs
+                value:
+                  origins:
+                    - "39.78,-89.64,store_a"
+                  destinations:
+                    - "39.80,-89.66,customer_1"
+                    - lat: 39.81
+                      lon: -89.67
+                    - "39.82,-89.68"
+                  mode: driving
+                  units: km
+                  max_results: 5
+                  max_distance: 50
+                  order_by: distance
+      responses:
+        200:
+          description: Successfully calculated distance matrix or nearest results
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DistanceMatrixResponse'
+                  - $ref: '#/components/schemas/DistanceNearestResponse'
+              examples:
+                matrix:
+                  summary: Full matrix response with IDs
+                  value:
+                    distance:
+                      origins:
+                        - index: 0
+                          id: "office_dc"
+                          location: [38.8977, -77.0365]
+                        - index: 1
+                          location: [34.31, -120.52]
+                      destinations:
+                        - index: 0
+                          id: "warehouse_ca"
+                          location: [37.3317, -122.0307]
+                        - index: 1
+                          location: [34.00, -121.10]
+                      distances:
+                        - [2796.4, 285.1]
+                        - [127.3, 215.8]
+                      durations:
+                        - [2580.5, 330.5]
+                        - [133.1, 218.2]
+                      mode: driving
+                      units: miles
+                      elements_billed: 4
+                nearest:
+                  summary: Nearest per origin response with IDs
+                  value:
+                    distance:
+                      mode: driving
+                      units: km
+                      results:
+                        - origin:
+                            index: 0
+                            id: "store_a"
+                            location: [39.78, -89.64]
+                          targets:
+                            - index: 0
+                              id: "customer_1"
+                              location: [39.80, -89.66]
+                              distance: 8.9
+                              duration_minutes: 11.2
+                            - index: 1
+                              location: [39.81, -89.67]
+                              distance: 10.2
+                              duration_minutes: 12.8
+                      elements_billed: 2
+        422:
+          description: Invalid coordinates in request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Invalid API key or access forbidden
+      security:
+        - geocodioApiKey: []
+  /distance/jobs:
+    post:
+      tags:
+      - distance
+      summary: Create async distance calculation job
+      description: |
+        For large matrix calculations (>10,000 elements), create an asynchronous job.
+        Poll the job status endpoint or provide a webhook URL for completion notification.
+      operationId: distanceJobCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DistanceAsyncRequest'
+            examples:
+              async_matrix:
+                summary: Large async matrix job
+                value:
+                  origins:
+                    - "38.8977,-77.0365"
+                    - "34.31,-120.52"
+                  destinations:
+                    - "37.3317,-122.0307"
+                    - "34.00,-121.10"
+                  mode: driving
+                  units: miles
+                  async: true
+                  callback_url: "https://example.com/webhook"
+      responses:
+        202:
+          description: Job created and queued for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistanceJobResponse'
+              example:
+                job_id: "dist_abc123def456"
+                status: "queued"
+                estimated_elements: 1000000
+                created_at: "2025-10-10T12:00:00Z"
+        422:
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Invalid API key or access forbidden
+      security:
+        - geocodioApiKey: []
+    get:
+      tags:
+      - distance
+      summary: List distance calculation jobs
+      description: Retrieve all distance calculation jobs for the authenticated API key
+      operationId: distanceJobsList
+      parameters:
+      - name: status
+        in: query
+        description: Filter jobs by status
+        schema:
+          type: string
+          enum: [queued, processing, completed, failed]
+      - name: limit
+        in: query
+        description: Maximum number of jobs to return
+        schema:
+          type: integer
+          default: 100
+          maximum: 1000
+      responses:
+        200:
+          description: List of distance jobs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DistanceJobResponse'
+              example:
+                jobs:
+                  - job_id: "dist_abc123"
+                    status: "completed"
+                    estimated_elements: 10000
+                    created_at: "2025-10-10T12:00:00Z"
+                    completed_at: "2025-10-10T12:05:30Z"
+        403:
+          description: Invalid API key or access forbidden
+      security:
+        - geocodioApiKey: []
+  /distance/jobs/{job_id}:
+    get:
+      tags:
+      - distance
+      summary: Get distance calculation job status and results
+      description: |
+        Retrieve the status and results of an async distance calculation job.
+        When status is "completed", the full results are included in the response.
+      operationId: distanceJobGet
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        description: Job ID returned from job creation
+        schema:
+          type: string
+        example: "dist_abc123def456"
+      responses:
+        200:
+          description: Job status and results (if completed)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/DistanceJobResponse'
+                  - $ref: '#/components/schemas/DistanceJobCompletedResponse'
+              examples:
+                queued:
+                  summary: Job still queued
+                  value:
+                    job_id: "dist_abc123"
+                    status: "queued"
+                    estimated_elements: 1000000
+                    created_at: "2025-10-10T12:00:00Z"
+                processing:
+                  summary: Job processing
+                  value:
+                    job_id: "dist_abc123"
+                    status: "processing"
+                    estimated_elements: 1000000
+                    progress_percentage: 45
+                    created_at: "2025-10-10T12:00:00Z"
+                completed:
+                  summary: Job completed with results
+                  value:
+                    job_id: "dist_abc123"
+                    status: "completed"
+                    estimated_elements: 1000000
+                    created_at: "2025-10-10T12:00:00Z"
+                    completed_at: "2025-10-10T12:15:30Z"
+                    result:
+                      distance:
+                        origins:
+                          - index: 0
+                            id: "location_a"
+                            location: [38.8977, -77.0365]
+                        destinations:
+                          - index: 0
+                            id: "location_b"
+                            location: [37.3317, -122.0307]
+                        distances: [[2796.4]]
+                        durations: [[2580.5]]
+                        mode: driving
+                        units: miles
+                        elements_billed: 1
+                failed:
+                  summary: Job failed
+                  value:
+                    job_id: "dist_abc123"
+                    status: "failed"
+                    estimated_elements: 1000000
+                    created_at: "2025-10-10T12:00:00Z"
+                    failed_at: "2025-10-10T12:05:00Z"
+                    error: "Invalid coordinate format at origin index 42"
+        404:
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        403:
+          description: Invalid API key or access forbidden
       security:
         - geocodioApiKey: []
   /reverse:
@@ -776,6 +1295,541 @@ components:
           - acs-housing
           - acs-social
           - ffiec
+    GeocodingResultWithDistance:
+      type: object
+      properties:
+        input:
+          type: object
+          properties:
+            address_components:
+              $ref: '#/components/schemas/AddressComponents'
+            formatted_address:
+              type: string
+        results:
+          $ref: '#/components/schemas/AddressResult'
+        distance:
+          $ref: '#/components/schemas/SingleDistanceResponse'
+
+    DistanceQuery:
+      type: object
+      properties:
+        targets:
+          type: array
+          description: List of addresses (string) or coordinates to compare against the origin.
+          items:
+            $ref: '#/components/schemas/DistanceTarget'
+        mode:
+          type: string
+          description: Distance calculation mode.
+          enum: [haversine, straightline, driving]
+          default: driving
+        units:
+          type: string
+          description: Unit for distances in the response.
+          enum: [miles, km]
+          default: miles
+        max_results:
+          type: integer
+          description: Optional limit of results per origin (server-side filtering).
+        max_distance:
+          type: number
+          description: Optional maximum distance filter (in selected units).
+        max_duration:
+          type: number
+          description: Optional maximum driving duration filter in minutes (driving mode only).
+        order_by:
+          type: string
+          description: Sort results by distance or duration.
+          enum: [distance, duration]
+        verify:
+          type: boolean
+          description: If true and targets include coordinates, also reverse geocode to validate plausibility.
+      required: [targets]
+
+    DistanceTarget:
+      oneOf:
+        - type: string
+          description: Address string to be geocoded
+        - type: object
+          description: Coordinate target
+          properties:
+            lat:
+              type: number
+              format: float
+            lon:
+              type: number
+              format: float
+          required: [lat, lon]
+
+    SingleDistanceResponse:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [haversine, straightline, driving]
+        units:
+          type: string
+          enum: [miles, km]
+        origin:
+          type: object
+          properties:
+            location:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+        targets:
+          type: array
+          items:
+            type: object
+            properties:
+              input:
+                oneOf:
+                  - type: string
+                  - type: object
+                    properties:
+                      lat:
+                        type: number
+                      lon:
+                        type: number
+              resolved:
+                type: object
+                properties:
+                  location:
+                    type: array
+                    items:
+                      type: number
+                    minItems: 2
+                    maxItems: 2
+              distance:
+                type: number
+              duration_minutes:
+                type: number
+
+    BatchGeocodeArrayAdvanced:
+      type: array
+      description: Batch array where each item can include its own parameters.
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          q:
+            type: string
+          distance:
+            $ref: '#/components/schemas/DistanceQuery'
+        required: [q]
+
+    BatchGeocodeMatrixRequest:
+      type: object
+      description: Global matrix request using the batch geocode endpoint.
+      properties:
+        addresses:
+          type: array
+          description: Optional list that can serve as origins or destinations.
+          items:
+            type: string
+        distance:
+          type: object
+          properties:
+            origins:
+              description: Use "addresses" to reference the addresses list, or provide explicit origins.
+              oneOf:
+                - type: string
+                  enum: [addresses]
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/DistanceTarget'
+            destinations:
+              type: array
+              items:
+                $ref: '#/components/schemas/DistanceTarget'
+            mode:
+              type: string
+              enum: [haversine, straightline, driving]
+              default: driving
+            units:
+              type: string
+              enum: [miles, km]
+              default: miles
+            max_results:
+              type: integer
+            max_distance:
+              type: number
+            max_duration:
+              type: number
+            order_by:
+              type: string
+              enum: [distance, duration]
+            async:
+              type: boolean
+              description: If true, create an asynchronous matrix job and return a job_id.
+          required: [destinations]
+
+    DistanceMatrixResponse:
+      type: object
+      properties:
+        distance:
+          type: object
+          properties:
+            origins:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  id:
+                    type: string
+                    description: Optional ID from request for matching
+                  location:
+                    type: array
+                    items:
+                      type: number
+                    minItems: 2
+                    maxItems: 2
+            destinations:
+              type: array
+              items:
+                type: object
+                properties:
+                  index:
+                    type: integer
+                  id:
+                    type: string
+                    description: Optional ID from request for matching
+                  location:
+                    type: array
+                    items:
+                      type: number
+                    minItems: 2
+                    maxItems: 2
+            distances:
+              type: array
+              items:
+                type: array
+                items:
+                  type: number
+            durations:
+              type: array
+              items:
+                type: array
+                items:
+                  oneOf:
+                    - type: number
+                    - type: 'null'
+            mode:
+              type: string
+              enum: [haversine, straightline, driving]
+            units:
+              type: string
+              enum: [miles, km]
+            elements_billed:
+              type: integer
+
+    BatchGeocodeLegacyResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              query:
+                type: string
+              response:
+                $ref: '#/components/schemas/GeocodingResult'
+
+    BatchGeocodePerRowDistanceResponse:
+      type: array
+      description: Array of per-row responses when using BatchGeocodeArrayAdvanced.
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          query:
+            type: string
+          response:
+            $ref: '#/components/schemas/GeocodingResultWithDistance'
+
+    DistanceCoordinate:
+      oneOf:
+        - type: string
+          description: Coordinate string in "lat,lon" or "lat,lon,id" format (id is optional)
+          example: "38.8977,-77.0365,clinic_a"
+        - type: object
+          description: Coordinate object with optional ID for matching
+          properties:
+            lat:
+              type: number
+              format: float
+              example: 38.8977
+            lon:
+              type: number
+              format: float
+              example: -77.0365
+            id:
+              type: string
+              description: Optional identifier to match this coordinate in the response
+              example: "clinic_a"
+          required: [lat, lon]
+
+    DistanceGetResponse:
+      type: object
+      properties:
+        origin:
+          type: object
+          properties:
+            location:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+        mode:
+          type: string
+          enum: [haversine, straightline, driving]
+        units:
+          type: string
+          enum: [miles, km]
+        targets:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Optional ID from request for matching
+              location:
+                type: array
+                items:
+                  type: number
+                minItems: 2
+                maxItems: 2
+              distance:
+                type: number
+              duration_minutes:
+                type: number
+        elements_billed:
+          type: integer
+
+    DistanceMatrixRequest:
+      type: object
+      properties:
+        origins:
+          type: array
+          description: Array of origin coordinates (strings or objects)
+          items:
+            $ref: '#/components/schemas/DistanceCoordinate'
+        destinations:
+          type: array
+          description: Array of destination coordinates (strings or objects)
+          items:
+            $ref: '#/components/schemas/DistanceCoordinate'
+        mode:
+          type: string
+          enum: [haversine, straightline, driving]
+          default: driving
+        units:
+          type: string
+          enum: [miles, km]
+          default: miles
+      required: [origins, destinations]
+
+    DistanceNearestRequest:
+      type: object
+      properties:
+        origins:
+          type: array
+          description: Array of origin coordinates (strings or objects)
+          items:
+            $ref: '#/components/schemas/DistanceCoordinate'
+        destinations:
+          type: array
+          description: Array of destination coordinates (strings or objects)
+          items:
+            $ref: '#/components/schemas/DistanceCoordinate'
+        mode:
+          type: string
+          enum: [haversine, straightline, driving]
+          default: driving
+        units:
+          type: string
+          enum: [miles, km]
+          default: miles
+        max_results:
+          type: integer
+          minimum: 1
+          description: Maximum number of results per origin
+        max_distance:
+          type: number
+          description: Maximum distance filter in selected units
+        max_duration:
+          type: number
+          description: Maximum driving duration filter in minutes (driving mode only)
+        order_by:
+          type: string
+          enum: [distance, duration]
+          default: distance
+      required: [origins, destinations]
+
+    DistanceNearestResponse:
+      type: object
+      properties:
+        distance:
+          type: object
+          properties:
+            mode:
+              type: string
+              enum: [haversine, straightline, driving]
+            units:
+              type: string
+              enum: [miles, km]
+            results:
+              type: array
+              items:
+                type: object
+                properties:
+                  origin:
+                    type: object
+                    properties:
+                      index:
+                        type: integer
+                      id:
+                        type: string
+                        description: Optional ID from request for matching
+                      location:
+                        type: array
+                        items:
+                          type: number
+                        minItems: 2
+                        maxItems: 2
+                  targets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        index:
+                          type: integer
+                        id:
+                          type: string
+                          description: Optional ID from request for matching
+                        location:
+                          type: array
+                          items:
+                            type: number
+                          minItems: 2
+                          maxItems: 2
+                        distance:
+                          type: number
+                        duration_minutes:
+                          type: number
+            elements_billed:
+              type: integer
+
+    DistanceAsyncRequest:
+      type: object
+      properties:
+        origins:
+          type: array
+          description: Array of origin coordinates (strings or objects)
+          items:
+            $ref: '#/components/schemas/DistanceCoordinate'
+        destinations:
+          type: array
+          description: Array of destination coordinates (strings or objects)
+          items:
+            $ref: '#/components/schemas/DistanceCoordinate'
+        mode:
+          type: string
+          enum: [haversine, straightline, driving]
+          default: driving
+        units:
+          type: string
+          enum: [miles, km]
+          default: miles
+        async:
+          type: boolean
+          description: Must be true for async job creation
+        callback_url:
+          type: string
+          format: uri
+          description: Optional webhook URL to receive job completion notification
+        max_results:
+          type: integer
+          minimum: 1
+          description: Optional maximum number of results per origin for nearest mode
+        max_distance:
+          type: number
+          description: Optional maximum distance filter in selected units
+        max_duration:
+          type: number
+          description: Optional maximum driving duration filter in minutes
+        order_by:
+          type: string
+          enum: [distance, duration]
+          default: distance
+      required: [origins, destinations, async]
+
+    DistanceJobResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+          example: "dist_abc123def456"
+        status:
+          type: string
+          enum: [queued, processing, completed, failed]
+        estimated_elements:
+          type: integer
+        progress_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        failed_at:
+          type: string
+          format: date-time
+        error:
+          type: string
+          description: Error message if status is "failed"
+
+    DistanceJobCompletedResponse:
+      type: object
+      properties:
+        job_id:
+          type: string
+        status:
+          type: string
+          enum: [completed]
+        estimated_elements:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/DistanceMatrixResponse'
+            - $ref: '#/components/schemas/DistanceNearestResponse'
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message describing what went wrong
+      required: [error]
+
   securitySchemes:
     geocodioApiKey:
       type: apiKey
